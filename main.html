@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素信息隐藏工具</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea, button {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .canvas-container {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+        canvas {
+            border: 1px solid #ddd;
+            max-width: 48%;
+        }
+        .info {
+            background-color: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>像素信息隐藏工具</h1>
+        
+        <div class="section">
+            <label for="imageInput">选择图片:</label>
+            <input type="file" id="imageInput" accept="image/*">
+        </div>
+        
+        <div class="section">
+            <label for="message">要隐藏的信息:</label>
+            <textarea id="message" rows="3" placeholder="输入要隐藏的信息..."></textarea>
+        </div>
+        
+        <div class="section">
+            <label for="startPixel">起始像素位置 (x,y):</label>
+            <input type="text" id="startPixel" placeholder="例如: 10,10">
+        </div>
+        
+        <div class="section">
+            <label for="encodingMethod">编码方法:</label>
+            <select id="encodingMethod">
+                <option value="lsb">最低有效位 (LSB)</option>
+                <option value="rgb">RGB通道分布</option>
+            </select>
+        </div>
+        
+        <button id="encodeBtn">隐藏信息到图片</button>
+        <button id="decodeBtn">从图片提取信息</button>
+        
+        <div class="canvas-container">
+            <div>
+                <h3>原始图片</h3>
+                <canvas id="originalCanvas"></canvas>
+            </div>
+            <div>
+                <h3>处理后图片</h3>
+                <canvas id="processedCanvas"></canvas>
+            </div>
+        </div>
+        
+        <div id="result" class="info"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('imageInput');
+            const messageInput = document.getElementById('message');
+            const startPixelInput = document.getElementById('startPixel');
+            const encodingMethodSelect = document.getElementById('encodingMethod');
+            const encodeBtn = document.getElementById('encodeBtn');
+            const decodeBtn = document.getElementById('decodeBtn');
+            const originalCanvas = document.getElementById('originalCanvas');
+            const processedCanvas = document.getElementById('processedCanvas');
+            const resultDiv = document.getElementById('result');
+            
+            let originalImage = null;
+            
+            // 加载图片到canvas
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        originalImage = img;
+                        
+                        // 设置canvas尺寸
+                        originalCanvas.width = img.width;
+                        originalCanvas.height = img.height;
+                        processedCanvas.width = img.width;
+                        processedCanvas.height = img.height;
+                        
+                        // 绘制原始图片
+                        const ctx = originalCanvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        
+                        resultDiv.textContent = '图片已加载，尺寸: ' + img.width + 'x' + img.height;
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // 编码按钮点击事件
+            encodeBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    resultDiv.textContent = '请先选择一张图片';
+                    return;
+                }
+                
+                const message = messageInput.value;
+                if (!message) {
+                    resultDiv.textContent = '请输入要隐藏的信息';
+                    return;
+                }
+                
+                const startPixel = parseStartPixel(startPixelInput.value);
+                if (!startPixel) {
+                    resultDiv.textContent = '请输入有效的起始像素位置，格式: x,y';
+                    return;
+                }
+                
+                const encodingMethod = encodingMethodSelect.value;
+                
+                try {
+                    const processedImageData = encodeMessage(
+                        originalImage, 
+                        message, 
+                        startPixel, 
+                        encodingMethod
+                    );
+                    
+                    // 绘制处理后的图片
+                    const ctx = processedCanvas.getContext('2d');
+                    ctx.putImageData(processedImageData, 0, 0);
+                    
+                    resultDiv.textContent = '信息已成功隐藏到图片中！';
+                    
+                    // 提供下载链接
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = processedCanvas.toDataURL('image/png');
+                    downloadLink.download = 'encoded_image.png';
+                    downloadLink.textContent = '点击下载处理后的图片';
+                    resultDiv.appendChild(document.createElement('br'));
+                    resultDiv.appendChild(downloadLink);
+                    
+                } catch (error) {
+                    resultDiv.textContent = '编码失败: ' + error.message;
+                }
+            });
+            
+            // 解码按钮点击事件
+            decodeBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    resultDiv.textContent = '请先选择一张图片';
+                    return;
+                }
+                
+                const startPixel = parseStartPixel(startPixelInput.value);
+                if (!startPixel) {
+                    resultDiv.textContent = '请输入有效的起始像素位置，格式: x,y';
+                    return;
+                }
+                
+                const encodingMethod = encodingMethodSelect.value;
+                
+                try {
+                    const decodedMessage = decodeMessage(
+                        originalImage,
+                        startPixel,
+                        encodingMethod
+                    );
+                    
+                    resultDiv.textContent = '提取的信息: ' + decodedMessage;
+                } catch (error) {
+                    resultDiv.textContent = '解码失败: ' + error.message;
+                }
+            });
+            
+            // 解析起始像素位置
+            function parseStartPixel(pixelStr) {
+                const parts = pixelStr.split(',');
+                if (parts.length !== 2) return null;
+                
+                const x = parseInt(parts[0].trim());
+                const y = parseInt(parts[1].trim());
+                
+                if (isNaN(x) || isNaN(y) || x < 0 || y < 0) return null;
+                
+                return { x, y };
+            }
+            
+            // 编码信息到图片
+            function encodeMessage(image, message, startPixel, method) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // 将消息转换为二进制
+                const binaryMessage = textToBinary(message);
+                
+                if (method === 'lsb') {
+                    // 使用最低有效位方法
+                    encodeLSB(data, binaryMessage, startPixel);
+                } else if (method === 'rgb') {
+                    // 使用RGB通道分布方法
+                    encodeRGB(data, binaryMessage, startPixel);
+                }
+                
+                return imageData;
+            }
+            
+            // 从图片解码信息
+            function decodeMessage(image, startPixel, method) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                let binaryMessage = '';
+                
+                if (method === 'lsb') {
+                    // 使用最低有效位方法
+                    binaryMessage = decodeLSB(data, startPixel);
+                } else if (method === 'rgb') {
+                    // 使用RGB通道分布方法
+                    binaryMessage = decodeRGB(data, startPixel);
+                }
+                
+                // 将二进制转换为文本
+                return binaryToText(binaryMessage);
+            }
+            
+            // 最低有效位编码
+            function encodeLSB(data, binaryMessage, startPixel) {
+                const messageLength = binaryMessage.length;
+                let pixelIndex = (startPixel.y * data.width + startPixel.x) * 4;
+                
+                // 检查是否有足够的像素来存储消息
+                const availableBits = (data.length - pixelIndex) * 3; // 每个像素有3个颜色通道
+                if (messageLength > availableBits) {
+                    throw new Error('消息太长，无法隐藏到指定的起始位置');
+                }
+                
+                // 将消息长度存储在起始像素的RGB通道中
+                const lengthBinary = messageLength.toString(2).padStart(24, '0');
+                for (let i = 0; i < 24; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(lengthBinary[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                }
+                pixelIndex += 3; // 移动到下一个像素
+                
+                // 存储消息内容
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(binaryMessage[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                    
+                    // 每处理完一个像素的3个通道，移动到下一个像素
+                    if (channel === 2) {
+                        pixelIndex += 4;
+                    }
+                }
+            }
+            
+            // 最低有效位解码
+            function decodeLSB(data, startPixel) {
+                let pixelIndex = (startPixel.y * data.width + startPixel.x) * 4;
+                
+                // 从起始像素读取消息长度
+                let lengthBinary = '';
+                for (let i = 0; i < 24; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    lengthBinary += bit;
+                }
+                const messageLength = parseInt(lengthBinary, 2);
+                pixelIndex += 3; // 移动到下一个像素
+                
+                // 读取消息内容
+                let binaryMessage = '';
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    binaryMessage += bit;
+                    
+                    // 每处理完一个像素的3个通道，移动到下一个像素
+                    if (channel === 2) {
+                        pixelIndex += 4;
+                    }
+                }
+                
+                return binaryMessage;
+            }
+            
+            // RGB通道分布编码
+            function encodeRGB(data, binaryMessage, startPixel) {
+                const messageLength = binaryMessage.length;
+                let pixelIndex = (startPixel.y * data.width + startPixel.x) * 4;
+                
+                // 检查是否有足够的像素来存储消息
+                const availableBits = (data.length - pixelIndex) / 4; // 每个像素存储1位
+                if (messageLength > availableBits) {
+                    throw new Error('消息太长，无法隐藏到指定的起始位置');
+                }
+                
+                // 将消息长度存储在起始的几个像素中
+                const lengthBinary = messageLength.toString(2).padStart(32, '0');
+                for (let i = 0; i < 32; i++) {
+                    const pixelOffset = Math.floor(i / 8);
+                    const channel = i % 8 < 3 ? 0 : (i % 8 < 6 ? 1 : 2);
+                    const bit = parseInt(lengthBinary[i]);
+                    data[pixelIndex + pixelOffset * 4 + channel] = (data[pixelIndex + pixelOffset * 4 + channel] & 0xFE) | bit;
+                }
+                pixelIndex += 4 * 4; // 移动4个像素
+                
+                // 存储消息内容
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(binaryMessage[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                    pixelIndex += 4; // 移动到下一个像素
+                }
+            }
+            
+            // RGB通道分布解码
+            function decodeRGB(data, startPixel) {
+                let pixelIndex = (startPixel.y * data.width + startPixel.x) * 4;
+                
+                // 从起始的几个像素读取消息长度
+                let lengthBinary = '';
+                for (let i = 0; i < 32; i++) {
+                    const pixelOffset = Math.floor(i / 8);
+                    const channel = i % 8 < 3 ? 0 : (i % 8 < 6 ? 1 : 2);
+                    const bit = data[pixelIndex + pixelOffset * 4 + channel] & 1;
+                    lengthBinary += bit;
+                }
+                const messageLength = parseInt(lengthBinary, 2);
+                pixelIndex += 4 * 4; // 移动4个像素
+                
+                // 读取消息内容
+                let binaryMessage = '';
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    binaryMessage += bit;
+                    pixelIndex += 4; // 移动到下一个像素
+                }
+                
+                return binaryMessage;
+            }
+            
+            // 将文本转换为二进制
+            function textToBinary(text) {
+                return text.split('').map(char => {
+                    return char.charCodeAt(0).toString(2).padStart(8, '0');
+                }).join('');
+            }
+            
+            // 将二进制转换为文本
+            function binaryToText(binary) {
+                let text = '';
+                for (let i = 0; i < binary.length; i += 8) {
+                    const byte = binary.substring(i, i + 8);
+                    if (byte.length === 8) {
+                        text += String.fromCharCode(parseInt(byte, 2));
+                    }
+                }
+                return text;
+            }
+        });
+    </script>
+</body>
+</html>
