@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>像素信息隐藏工具 | Pixel Steganography Tool</title>
+    <style>
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cbc;
+            --background-color: #f5f7fa;
+            --card-color: #ffffff;
+            --text-color: #333333;
+            --border-color: #e1e4e8;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: var(--card-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 25px 30px;
+            position: relative;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .language-selector {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .lang-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .lang-btn.active {
+            background: rgba(255, 255, 255, 0.3);
+            font-weight: 600;
+        }
+        
+        .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+        }
+        
+        main {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+        
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background-color: var(--card-color);
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border-color);
+        }
+        
+        h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border 0.3s;
+        }
+        
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+        
+        .btn-secondary {
+            background-color: #f0f0f0;
+            color: var(--text-color);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .canvas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        
+        .canvas-wrapper {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        canvas {
+            display: block;
+            max-width: 100%;
+            background-color: #f9f9f9;
+        }
+        
+        .canvas-label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+        
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid var(--primary-color);
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 8px;
+            color: var(--primary-color);
+        }
+        
+        .result-box {
+            background-color: #f0f8f0;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        
+        .result-box h3 {
+            margin-bottom: 8px;
+            color: #2e7d32;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <div>
+                    <h1 id="title">像素信息隐藏工具</h1>
+                    <div class="subtitle" id="subtitle">将信息隐藏在图片像素中 | Hide information in image pixels</div>
+                </div>
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="zh">中文</button>
+                    <button class="lang-btn" data-lang="en">English</button>
+                </div>
+            </div>
+        </header>
+        
+        <main>
+            <div class="panel">
+                <h2 id="input-title">输入设置</h2>
+                
+                <div class="form-group">
+                    <label for="imageInput" id="image-label">选择图片</label>
+                    <input type="file" id="imageInput" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label for="message" id="message-label">要隐藏的信息</label>
+                    <textarea id="message" placeholder="输入要隐藏的信息..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="startPixel" id="start-label">起始像素位置 (x,y)</label>
+                    <input type="text" id="startPixel" placeholder="例如: 10,10">
+                </div>
+                
+                <div class="form-group">
+                    <label for="encodingMethod" id="method-label">编码方法</label>
+                    <select id="encodingMethod">
+                        <option value="lsb">最低有效位 (LSB)</option>
+                        <option value="rgb">RGB通道分布</option>
+                    </select>
+                </div>
+                
+                <div class="btn-group">
+                    <button id="encodeBtn" class="btn-primary">隐藏信息到图片</button>
+                    <button id="decodeBtn" class="btn-secondary">从图片提取信息</button>
+                </div>
+                
+                <div class="info-box">
+                    <h3 id="info-title">工作原理</h3>
+                    <p id="info-text">此工具通过修改图片像素的RGB颜色值来隐藏信息。最低有效位(LSB)方法修改每个颜色通道的最后一位，对图片影响最小。RGB通道分布方法将信息分散到多个像素中。</p>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2 id="output-title">输出结果</h2>
+                
+                <div class="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="originalCanvas"></canvas>
+                        <div class="canvas-label" id="original-label">原始图片</div>
+                    </div>
+                    
+                    <div class="canvas-wrapper">
+                        <canvas id="processedCanvas"></canvas>
+                        <div class="canvas-label" id="processed-label">处理后图片</div>
+                    </div>
+                </div>
+                
+                <div id="result" class="result-box hidden">
+                    <h3 id="result-title">结果</h3>
+                    <p id="result-text"></p>
+                    <a id="downloadLink" class="hidden" download="encoded_image.png">下载处理后的图片</a>
+                </div>
+            </div>
+        </main>
+        
+        <div class="footer">
+            <p id="footer-text">像素信息隐藏工具 - 使用隐写术在图片中隐藏信息</p>
+        </div>
+    </div>
+
+    <script>
+        // 多语言资源
+        const resources = {
+            zh: {
+                title: "像素信息隐藏工具",
+                subtitle: "将信息隐藏在图片像素中 | Hide information in image pixels",
+                "input-title": "输入设置",
+                "image-label": "选择图片",
+                "message-label": "要隐藏的信息",
+                "start-label": "起始像素位置 (x,y)",
+                "method-label": "编码方法",
+                "encode-btn": "隐藏信息到图片",
+                "decode-btn": "从图片提取信息",
+                "output-title": "输出结果",
+                "original-label": "原始图片",
+                "processed-label": "处理后图片",
+                "info-title": "工作原理",
+                "info-text": "此工具通过修改图片像素的RGB颜色值来隐藏信息。最低有效位(LSB)方法修改每个颜色通道的最后一位，对图片影响最小。RGB通道分布方法将信息分散到多个像素中。",
+                "result-title": "结果",
+                "footer-text": "像素信息隐藏工具 - 使用隐写术在图片中隐藏信息",
+                "select-image": "请先选择一张图片",
+                "enter-message": "请输入要隐藏的信息",
+                "invalid-pixel": "请输入有效的起始像素位置，格式: x,y",
+                "encode-success": "信息已成功隐藏到图片中！",
+                "decode-success": "提取的信息: ",
+                "encode-fail": "编码失败: ",
+                "decode-fail": "解码失败: ",
+                "download-text": "点击下载处理后的图片"
+            },
+            en: {
+                title: "Pixel Steganography Tool",
+                subtitle: "Hide information in image pixels | 将信息隐藏在图片像素中",
+                "input-title": "Input Settings",
+                "image-label": "Select Image",
+                "message-label": "Message to Hide",
+                "start-label": "Start Pixel Position (x,y)",
+                "method-label": "Encoding Method",
+                "encode-btn": "Encode Message into Image",
+                "decode-btn": "Decode Message from Image",
+                "output-title": "Output Results",
+                "original-label": "Original Image",
+                "processed-label": "Processed Image",
+                "info-title": "How It Works",
+                "info-text": "This tool hides information by modifying RGB color values of image pixels. The Least Significant Bit (LSB) method changes the last bit of each color channel, having minimal impact on the image. The RGB channel distribution method spreads information across multiple pixels.",
+                "result-title": "Result",
+                "footer-text": "Pixel Steganography Tool - Hide information in images using steganography",
+                "select-image": "Please select an image first",
+                "enter-message": "Please enter a message to hide",
+                "invalid-pixel": "Please enter a valid start pixel position, format: x,y",
+                "encode-success": "Message successfully encoded into image!",
+                "decode-success": "Extracted message: ",
+                "encode-fail": "Encoding failed: ",
+                "decode-fail": "Decoding failed: ",
+                "download-text": "Click to download processed image"
+            }
+        };
+
+        // 当前语言
+        let currentLang = 'zh';
+
+        // DOM元素
+        const elements = {
+            title: document.getElementById('title'),
+            subtitle: document.getElementById('subtitle'),
+            'input-title': document.getElementById('input-title'),
+            'image-label': document.getElementById('image-label'),
+            'message-label': document.getElementById('message-label'),
+            'start-label': document.getElementById('start-label'),
+            'method-label': document.getElementById('method-label'),
+            'encode-btn': document.getElementById('encodeBtn'),
+            'decode-btn': document.getElementById('decodeBtn'),
+            'output-title': document.getElementById('output-title'),
+            'original-label': document.getElementById('original-label'),
+            'processed-label': document.getElementById('processed-label'),
+            'info-title': document.getElementById('info-title'),
+            'info-text': document.getElementById('info-text'),
+            'result-title': document.getElementById('result-title'),
+            'footer-text': document.getElementById('footer-text')
+        };
+
+        // 更新界面语言
+        function updateLanguage(lang) {
+            currentLang = lang;
+            
+            // 更新所有文本元素
+            Object.keys(elements).forEach(key => {
+                if (elements[key]) {
+                    elements[key].textContent = resources[lang][key];
+                }
+            });
+            
+            // 更新按钮文本
+            document.getElementById('encodeBtn').textContent = resources[lang]['encode-btn'];
+            document.getElementById('decodeBtn').textContent = resources[lang]['decode-btn'];
+            
+            // 更新占位符文本
+            document.getElementById('message').placeholder = lang === 'zh' ? '输入要隐藏的信息...' : 'Enter message to hide...';
+            document.getElementById('startPixel').placeholder = lang === 'zh' ? '例如: 10,10' : 'e.g., 10,10';
+        }
+
+        // 语言切换
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                updateLanguage(this.dataset.lang);
+            });
+        });
+
+        // 图片处理相关代码
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageInput = document.getElementById('imageInput');
+            const messageInput = document.getElementById('message');
+            const startPixelInput = document.getElementById('startPixel');
+            const encodingMethodSelect = document.getElementById('encodingMethod');
+            const encodeBtn = document.getElementById('encodeBtn');
+            const decodeBtn = document.getElementById('decodeBtn');
+            const originalCanvas = document.getElementById('originalCanvas');
+            const processedCanvas = document.getElementById('processedCanvas');
+            const resultDiv = document.getElementById('result');
+            const resultText = document.getElementById('result-text');
+            const downloadLink = document.getElementById('downloadLink');
+            
+            let originalImage = null;
+            
+            // 加载图片到canvas
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        originalImage = img;
+                        
+                        // 设置canvas尺寸
+                        originalCanvas.width = img.width;
+                        originalCanvas.height = img.height;
+                        processedCanvas.width = img.width;
+                        processedCanvas.height = img.height;
+                        
+                        // 绘制原始图片
+                        const ctx = originalCanvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        
+                        resultDiv.classList.add('hidden');
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // 编码按钮点击事件
+            encodeBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    showResult(resources[currentLang]['select-image'], 'error');
+                    return;
+                }
+                
+                const message = messageInput.value;
+                if (!message) {
+                    showResult(resources[currentLang]['enter-message'], 'error');
+                    return;
+                }
+                
+                const startPixel = parseStartPixel(startPixelInput.value);
+                if (!startPixel) {
+                    showResult(resources[currentLang]['invalid-pixel'], 'error');
+                    return;
+                }
+                
+                const encodingMethod = encodingMethodSelect.value;
+                
+                try {
+                    const processedImageData = encodeMessage(
+                        originalImage, 
+                        message, 
+                        startPixel, 
+                        encodingMethod
+                    );
+                    
+                    // 绘制处理后的图片
+                    const ctx = processedCanvas.getContext('2d');
+                    ctx.putImageData(processedImageData, 0, 0);
+                    
+                    showResult(resources[currentLang]['encode-success'], 'success');
+                    
+                    // 提供下载链接
+                    downloadLink.href = processedCanvas.toDataURL('image/png');
+                    downloadLink.textContent = resources[currentLang]['download-text'];
+                    downloadLink.classList.remove('hidden');
+                    
+                } catch (error) {
+                    showResult(resources[currentLang]['encode-fail'] + error.message, 'error');
+                }
+            });
+            
+            // 解码按钮点击事件
+            decodeBtn.addEventListener('click', function() {
+                if (!originalImage) {
+                    showResult(resources[currentLang]['select-image'], 'error');
+                    return;
+                }
+                
+                const startPixel = parseStartPixel(startPixelInput.value);
+                if (!startPixel) {
+                    showResult(resources[currentLang]['invalid-pixel'], 'error');
+                    return;
+                }
+                
+                const encodingMethod = encodingMethodSelect.value;
+                
+                try {
+                    const decodedMessage = decodeMessage(
+                        originalImage,
+                        startPixel,
+                        encodingMethod
+                    );
+                    
+                    showResult(resources[currentLang]['decode-success'] + decodedMessage, 'success');
+                    
+                } catch (error) {
+                    showResult(resources[currentLang]['decode-fail'] + error.message, 'error');
+                }
+            });
+            
+            // 显示结果
+            function showResult(message, type) {
+                resultText.textContent = message;
+                resultDiv.classList.remove('hidden');
+                
+                if (type === 'success') {
+                    resultDiv.style.backgroundColor = '#f0f8f0';
+                    resultDiv.style.borderLeftColor = '#4CAF50';
+                } else {
+                    resultDiv.style.backgroundColor = '#ffe7e7';
+                    resultDiv.style.borderLeftColor = '#f44336';
+                }
+                
+                downloadLink.classList.add('hidden');
+            }
+            
+            // 解析起始像素位置
+            function parseStartPixel(pixelStr) {
+                const parts = pixelStr.split(',');
+                if (parts.length !== 2) return null;
+                
+                const x = parseInt(parts[0].trim());
+                const y = parseInt(parts[1].trim());
+                
+                if (isNaN(x) || isNaN(y) || x < 0 || y < 0) return null;
+                
+                return { x, y };
+            }
+            
+            // 编码信息到图片
+            function encodeMessage(image, message, startPixel, method) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                // 将消息转换为二进制
+                const binaryMessage = textToBinary(message);
+                
+                if (method === 'lsb') {
+                    // 使用最低有效位方法
+                    encodeLSB(data, binaryMessage, startPixel, image.width);
+                } else if (method === 'rgb') {
+                    // 使用RGB通道分布方法
+                    encodeRGB(data, binaryMessage, startPixel, image.width);
+                }
+                
+                return imageData;
+            }
+            
+            // 从图片解码信息
+            function decodeMessage(image, startPixel, method) {
+                const canvas = document.createElement('canvas');
+                canvas.width = image.width;
+                canvas.height = image.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0);
+                
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                
+                let binaryMessage = '';
+                
+                if (method === 'lsb') {
+                    // 使用最低有效位方法
+                    binaryMessage = decodeLSB(data, startPixel, image.width);
+                } else if (method === 'rgb') {
+                    // 使用RGB通道分布方法
+                    binaryMessage = decodeRGB(data, startPixel, image.width);
+                }
+                
+                // 将二进制转换为文本
+                return binaryToText(binaryMessage);
+            }
+            
+            // 最低有效位编码
+            function encodeLSB(data, binaryMessage, startPixel, width) {
+                const messageLength = binaryMessage.length;
+                let pixelIndex = (startPixel.y * width + startPixel.x) * 4;
+                
+                // 检查是否有足够的像素来存储消息
+                const availableBits = (data.length - pixelIndex) * 3; // 每个像素有3个颜色通道
+                if (messageLength > availableBits) {
+                    throw new Error('Message too long for the selected start position');
+                }
+                
+                // 将消息长度存储在起始像素的RGB通道中
+                const lengthBinary = messageLength.toString(2).padStart(24, '0');
+                for (let i = 0; i < 24; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(lengthBinary[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                }
+                pixelIndex += 3; // 移动到下一个像素
+                
+                // 存储消息内容
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(binaryMessage[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                    
+                    // 每处理完一个像素的3个通道，移动到下一个像素
+                    if (channel === 2) {
+                        pixelIndex += 4;
+                    }
+                }
+            }
+            
+            // 最低有效位解码
+            function decodeLSB(data, startPixel, width) {
+                let pixelIndex = (startPixel.y * width + startPixel.x) * 4;
+                
+                // 从起始像素读取消息长度
+                let lengthBinary = '';
+                for (let i = 0; i < 24; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    lengthBinary += bit;
+                }
+                const messageLength = parseInt(lengthBinary, 2);
+                pixelIndex += 3; // 移动到下一个像素
+                
+                // 读取消息内容
+                let binaryMessage = '';
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    binaryMessage += bit;
+                    
+                    // 每处理完一个像素的3个通道，移动到下一个像素
+                    if (channel === 2) {
+                        pixelIndex += 4;
+                    }
+                }
+                
+                return binaryMessage;
+            }
+            
+            // RGB通道分布编码
+            function encodeRGB(data, binaryMessage, startPixel, width) {
+                const messageLength = binaryMessage.length;
+                let pixelIndex = (startPixel.y * width + startPixel.x) * 4;
+                
+                // 检查是否有足够的像素来存储消息
+                const availableBits = (data.length - pixelIndex) / 4; // 每个像素存储1位
+                if (messageLength > availableBits) {
+                    throw new Error('Message too long for the selected start position');
+                }
+                
+                // 将消息长度存储在起始的几个像素中
+                const lengthBinary = messageLength.toString(2).padStart(32, '0');
+                for (let i = 0; i < 32; i++) {
+                    const pixelOffset = Math.floor(i / 8);
+                    const channel = i % 8 < 3 ? 0 : (i % 8 < 6 ? 1 : 2);
+                    const bit = parseInt(lengthBinary[i]);
+                    data[pixelIndex + pixelOffset * 4 + channel] = (data[pixelIndex + pixelOffset * 4 + channel] & 0xFE) | bit;
+                }
+                pixelIndex += 4 * 4; // 移动4个像素
+                
+                // 存储消息内容
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = parseInt(binaryMessage[i]);
+                    data[pixelIndex + channel] = (data[pixelIndex + channel] & 0xFE) | bit;
+                    pixelIndex += 4; // 移动到下一个像素
+                }
+            }
+            
+            // RGB通道分布解码
+            function decodeRGB(data, startPixel, width) {
+                let pixelIndex = (startPixel.y * width + startPixel.x) * 4;
+                
+                // 从起始的几个像素读取消息长度
+                let lengthBinary = '';
+                for (let i = 0; i < 32; i++) {
+                    const pixelOffset = Math.floor(i / 8);
+                    const channel = i % 8 < 3 ? 0 : (i % 8 < 6 ? 1 : 2);
+                    const bit = data[pixelIndex + pixelOffset * 4 + channel] & 1;
+                    lengthBinary += bit;
+                }
+                const messageLength = parseInt(lengthBinary, 2);
+                pixelIndex += 4 * 4; // 移动4个像素
+                
+                // 读取消息内容
+                let binaryMessage = '';
+                for (let i = 0; i < messageLength; i++) {
+                    const channel = i % 3;
+                    const bit = data[pixelIndex + channel] & 1;
+                    binaryMessage += bit;
+                    pixelIndex += 4; // 移动到下一个像素
+                }
+                
+                return binaryMessage;
+            }
+            
+            // 将文本转换为二进制
+            function textToBinary(text) {
+                return text.split('').map(char => {
+                    return char.charCodeAt(0).toString(2).padStart(8, '0');
+                }).join('');
+            }
+            
+            // 将二进制转换为文本
+            function binaryToText(binary) {
+                let text = '';
+                for (let i = 0; i < binary.length; i += 8) {
+                    const byte = binary.substring(i, i + 8);
+                    if (byte.length === 8) {
+                        text += String.fromCharCode(parseInt(byte, 2));
+                    }
+                }
+                return text;
+            }
+        });
+    </script>
+</body>
+</html>
